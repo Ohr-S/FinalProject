@@ -1,0 +1,119 @@
+/* Center the content of the blog container */
+.blog-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Set the width of the blog content and sidebar */
+.blog-content {
+  display: flex;
+  flex-basis: 70%;
+  justify-content: space-between;
+}
+
+.sidebar {
+  display: flex;
+  flex-basis: 25%;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* Style the links and sidebar */
+.header-links {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-end;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.sidebar li {
+  margin-bottom: 5px;
+}
+
+/* Style the header */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: rgba(215, 9, 164, 0.87);
+  color: white;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 2em;
+  display: flex;
+  align-items: center;
+}
+
+header a {
+  padding-left: 110px;
+  color: white;
+  text-decoration: none;
+}
+
+/* Style the columns and rectangles */
+.column{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+#homecontent {
+  padding-left: 110px;
+  padding-right: 500px;
+}
+
+.rectangle {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin: 10px;
+  width: 80%;
+  text-align: center;
+}
+.about-me {
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+width: 70%;
+}
+
+.about-me h2 {
+font-size: 2em;
+margin-bottom: 20px;
+}
+
+.about-me p {
+font-size: 1.2em;
+line-height: 1.5;
+text-align: center;
+margin-bottom: 40px;
+}
+.latest, .popular {
+  flex-basis: 25%;
+  margin-left: auto;
+  padding-left: 70px;
+}
