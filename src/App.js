@@ -6,6 +6,7 @@ import AboutMe from "./About";
 import NewPost from "./NewPost";
 import Post from "./Post";
 import { Route, Routes } from "react-router-dom";
+import Login from "./login";
 
 const posts = [
   {
@@ -35,6 +36,7 @@ function App() {
         <Route path="/about-me" element={<AboutMe />} />
         <Route path="/new-post" element={<NewPost />} />
         <Route path="/post/:id" element={<Post posts={posts} />} />
+        <Route path="/login" element={<Login/>} />
       </Routes>
     </>
   );
