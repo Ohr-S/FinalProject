@@ -1,5 +1,5 @@
 import React from "react";
-import Column from "./Column";
+import Column from "../components/Column";
 
 const left_posts = [
     {title: "This is my life", description: "If you want to know more about me, call me"},
@@ -41,9 +41,9 @@ function Home() {
                 <div className="latest">
                     <h3>Latest</h3>
                     <ul>
-                        {posts.map((post) => (
+                        {posts.map((post, ind) => (
                             <li key={post.id}>
-                                <a href="#">{post.title}</a>
+                                <a href={"post/"+(ind+1)}>{post.title}</a>
                             </li>
                         ))}
                     </ul>
@@ -51,9 +51,9 @@ function Home() {
                 <div className="popular">
                     <h3>Popular</h3>
                     <ul>
-                        {posts.map((post) => (
+                        {posts.map((post, ind) => (
                             <li key={post.id}>
-                                <a href="#">{post.title}</a>
+                                <a href={"post/"+(ind+1)}>{post.title}</a>
                             </li>
                         ))}
                     </ul>

@@ -6,7 +6,7 @@ function Links() {
       <h3>Latest</h3>
       <ul>
         <li>
-          <a href="#">Latest Post 1</a>
+          <a href="/post/1">Latest Post 1</a>
         </li>
         <li>
           <a href="#">Latest Post 2</a>
