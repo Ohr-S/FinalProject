@@ -7,17 +7,17 @@ import NewPost from "./NewPost";
 import Post from "./Post";
 import { Route, Routes } from "react-router-dom";
 import Login from "./login";
-import PostView from "./post1"
 import { createTheme } from '@mui/material/styles';
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { red } from '@mui/material/colors';
+import {Checkbox} from "@mui/material";
 
 
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#556cd6",
+      main: "#b655d6",
     },
     secondary: {
       main: "#19857b",
@@ -26,6 +26,9 @@ const theme = createTheme({
       main: red.A400,
     },
   },
+  shape: {
+    radius: 16
+  }
 });
 
 
@@ -44,11 +47,20 @@ const posts = [
     published: "2022-05-02",
     author: "Jane Smith",
   },
+  {
+    id: "3",
+    title: "My third post",
+    content: "Sollll",
+    published: "2022-05-02",
+    author: "Jane Smith",
+  },
 ];
 
 function App() {
   return (
+
     <ThemeProvider theme = {theme}>
+
       <div className="HL">
         <Header />
       </div>
@@ -58,10 +70,11 @@ function App() {
         <Route path="/new-post" element={<NewPost />} />
         <Route path="/post/:id" element={<Post posts={posts} />} />
         <Route path="/login" element={<Login/>} />
-        <Route path="/post/1" element={<PostView post={posts[0]}/>}/>
       </Routes>
     </ThemeProvider>
   );
+
+
 }
 
 export default App;
