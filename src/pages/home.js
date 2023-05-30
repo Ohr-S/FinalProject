@@ -1,5 +1,6 @@
-import React from "react";
+import React, {useState} from "react";
 import Column from "../components/Column";
+import {getAllPosts} from "../API_requests/blog_requests";
 
 // const left_posts = [
 //     {title: "This is my life", description: "If you want to know more about me, call me"},
@@ -30,18 +31,30 @@ import Column from "../components/Column";
 // ];
 
 function Home(props) {
-    const posts = props.posts
+
+    const [is_read, set_is_read] = useState(false)
+    const [posts, setposts] = useState ([])
+    if (!is_read) {
+        const promise = getAllPosts()
+        console.log(promise)
+        promise.then(posts => {
+            set_is_read(true)
+            console.log(posts)
+            setposts(posts)
+        })
+    }
+
+
     return (
         <>
             <div className="blog-content" id="homecontent">
-
                 <Column posts={posts}/>
-                <div className="latest">
+                <div className="latest" id="latest">
                     <h3>Latest</h3>
                     <ul>
-                        {posts.sort((a,b) => a.published > b.published?1:-1).map((post, ind) => (
+                        {posts.sort((a, b) => a.created_at> b.created_at? 1 : -1).map((post, ind) => (
                             <li key={post.id}>
-                                <a href={"post/"+(post.id)}>{post.title}</a>
+                                <a href={"post/" + (post.id)}>{post.title}</a>
                             </li>
                         ))}
                     </ul>

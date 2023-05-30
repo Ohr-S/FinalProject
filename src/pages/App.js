@@ -12,6 +12,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { red } from '@mui/material/colors';
 import {Checkbox} from "@mui/material";
+import { getAllPosts } from "../API_requests/blog_requests";
 
 
 const theme = createTheme({
@@ -65,10 +66,10 @@ function App() {
         <Header />
       </div>
       <Routes>
-        <Route path="/" element={<Home posts={posts} />} />
+        <Route path="/" element={<Home/>} />
         <Route path="/about-me" element={<AboutMe />} />
         <Route path="/new-post" element={<NewPost />} />
-        <Route path="/post/:id" element={<Post posts={posts} />} />
+        <Route path="/post/:id" element={<Post/>} />
         <Route path="/login" element={<Login/>} />
       </Routes>
     </ThemeProvider>
