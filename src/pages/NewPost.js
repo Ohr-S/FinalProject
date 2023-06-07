@@ -15,8 +15,6 @@ function create_post() {
 
     } ).catch(error => alert(error.message))
 
-
-
 }
 
 function NewPost() {

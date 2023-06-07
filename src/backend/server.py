@@ -1,7 +1,10 @@
 # pip3 install mysql-connector-python
 import random
+import string
+from typing import Optional
 
-from flask import Flask, request
+import bcrypt as bcrypt
+from flask import Flask, request, abort, make_response
 from settings import dbpwd
 import mysql.connector as mysql
 import json
@@ -27,8 +30,8 @@ print(db)
 
 app = Flask(__name__)
 CORS(app)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
-
+# CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+CORS(app,supports_credentials=True,origins=["http://localhost:3000", "http://127.0.0.1:5000"], expose_headers='Set-Cookie')
 
 @app.route('/posts', methods=['GET', 'POST'])
 def manage_posts():
@@ -38,6 +41,7 @@ def manage_posts():
         return add_post()
 
 
+
 def get_all_posts():
     query = "select p.id, p.title, p.body, u.username, p.created_at from posts p join users u on p.user_id = u.id"
     cursor = db.cursor()
@@ -45,7 +49,6 @@ def get_all_posts():
     records = cursor.fetchall()
     cursor.close()
     print(records)
-    # [(1, 'Herzliya', 95142), (2, 'Tel Aviv', 435855), (3, 'Jerusalem', 874186), (4, 'Bat Yam', 128898), (5, 'Ramat Gan', 153135), (6, 'Eilat', 47800), (7, 'Petah Tikva', 233577), (8, 'Tveriya', 41300)]
     header = ['id', 'title', 'body', 'username', 'created_at']
     data = [dict(zip(header, r)) for r in records]
     for item in data:
@@ -83,6 +86,74 @@ def add_post():
     # new_post_id = cursor.lastrowid
     cursor.close()
     return get_post_by_id(postid)
+
+
+@app.route("/sign_up", methods=['POST'])
+def signup():
+    data = request.get_json()
+    user_id = random.randint(1, 999999)
+    salt = bcrypt.gensalt()
+    username = data['username']
+    raw_password = data['password']
+    hashed_password = bcrypt.hashpw(raw_password.encode('utf-8'), salt=salt)
+    check_query = 'select id from users where username = %s'
+    cursor = db.cursor()
+    cursor.execute(check_query, (username,))
+    res = cursor.fetchmany()
+    if res:
+        abort(401)
+    insert_query = 'insert into users (id, username, password, salt) values (%s, %s, %s, %s)'
+    cursor.execute(insert_query, (user_id, username, hashed_password, salt))
+    db.commit()
+    cursor.fetchmany()
+    cursor.close()
+    return login(username, hashed_password)
+
+
+@app.route("/login", methods=['POST'])
+def login(username: Optional[str] = None, hashed_password: Optional[bytes] = None):
+    data = request.get_json()
+    if username is None:
+        username = data['username']
+    get_salt_query = 'select id, password, salt from users where username = %s'
+    cursor = db.cursor()
+    cursor.execute(get_salt_query, (username,))
+    result = cursor.fetchmany()
+    if not result:
+        abort(401)
+    user_id, user_hashed_password, salt = result[0]
+    user_hashed_password = bytes(user_hashed_password)[:60]
+    salt = bytes(salt)
+    if hashed_password is None:
+        raw_password = data['password']
+        hashed_password = bcrypt.hashpw(raw_password.encode("utf-8"), salt=salt)
+
+    if user_hashed_password != hashed_password:
+        abort(401)
+
+    new_session_token = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(32))
+    insert_session_token = 'insert into sessions (session_id, user_id) values (%s, %s)'
+    cursor.execute(insert_session_token, (new_session_token, user_id))
+    db.commit()
+    cursor.fetchmany()
+    cursor.close()
+
+    resp = make_response()
+    resp.set_cookie("blog_session_id", new_session_token, path="/", samesite='None', secure=True)
+    return resp
+
+
+@app.route("/logout", methods=['POST'])
+def logout():
+    session_token = request.headers.get('blog_session_id')
+    cursor = db.cursor()
+    cursor.execute('delete from sessions where session_user = %s', (session_token,))
+    db.commit()
+    cursor.fetchmany()
+    cursor.close()
+    resp = make_response()
+    resp.set_cookie("blog_session_id", '', expires=0)
+    return resp
 
 
 if __name__ == "__main__":
