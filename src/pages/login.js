@@ -9,7 +9,7 @@ function _login() {
     const password = document.getElementById("login_password");
     const promise = login(username.value, password.value)
     promise.then(_ => {
-        document.location = `/}`;
+        document.location = `/`;
 
     } ).catch(error => alert(error.message))
 
@@ -19,7 +19,7 @@ function _signup() {
     const password = document.getElementById("login_password");
     const promise = signup(username.value, password.value)
     promise.then(_ => {
-        document.location = `/}`;
+        document.location = `/`;
 
     } ).catch(error => alert(error.message))
 

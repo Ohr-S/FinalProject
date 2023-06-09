@@ -5,11 +5,10 @@ import Stack from '@mui/joy/Stack';
 import {createNewPost} from "../API_requests/blog_requests";
 
 function create_post() {
-    const author = document.getElementById("form_author");
     const title = document.getElementById("form_title");
     const content = document.getElementById("form_content");
     console.log(title);
-    const promise = createNewPost(title.value, content.value, author.value)
+    const promise = createNewPost(title.value, content.value)
     promise.then(post => {
         document.location = `/post/${post.id}`;
 
@@ -35,14 +34,6 @@ function NewPost() {
         >
             <Stack spacing={2}>
                 <h2>New Post</h2>
-                <TextField
-                    sx={{
-                        width: 500
-                    }}
-                    id="form_author"
-                    label="Author:"
-                    maxRows={4}
-                />
                 <TextField
                     sx={{
                         width: 500

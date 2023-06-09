@@ -29,11 +29,11 @@ db = mysql.connect(
 print(db)
 
 app = Flask(__name__)
-CORS(app)
+# CORS(app)
 # CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 CORS(app,supports_credentials=True,origins=["http://localhost:3000", "http://127.0.0.1:5000"], expose_headers='Set-Cookie')
-
-@app.route('/posts', methods=['GET', 'POST'])
+# CORS(app,supports_credentials=True,origins=["http://localhost:3000", "http://127.0.0.1:5000"], expose_headers='Set-Cookie')
+# @app.route('/posts', methods=['GET', 'POST'])
 def manage_posts():
     if request.method == 'GET':
         return get_all_posts()
@@ -56,7 +56,7 @@ def get_all_posts():
     return json.dumps(data)
 
 
-@app.route("/post/<id>")
+@app.route("/posts/<id>")
 def get_post_by_id(id):
     query = "select p.id, p.title, p.body, u.username, p.created_at from posts p join users u on p.user_id = u.id where p.id=%s"
     values = (id,)
@@ -72,26 +72,27 @@ def get_post_by_id(id):
 
 def add_post():
     data = request.get_json()
-    print(data)
+    session_token = request.cookies.get('blog_session_id')
+    if session_token is None:
+        abort(401)
+
     cursor = db.cursor()
-    username = data['username']
-    username_query = "select id from users where username=%s"
-    cursor.execute(username_query, (username,))
-    user_id, = cursor.fetchmany()[0]
-    query = "insert into posts (id,title, body, user_id, created_at) values (%s, %s,%s, %s , %s)"
-    postid = random.randint(10,9999)
-    values = (postid, data['title'], data['body'], user_id, datetime.now().isoformat())
+    user_query = "select user_id from sessions where session_id=%s"
+    cursor.execute(user_query, (session_token,))
+    res = cursor.fetchmany()
+    user_id, = res[0]
+    query = "insert into posts (title, body, user_id, created_at) values (%s,%s, %s , %s)"
+    values = (data['title'], data['body'], user_id, datetime.now().isoformat())
     cursor.execute(query, values)
     db.commit()
     # new_post_id = cursor.lastrowid
     cursor.close()
-    return get_post_by_id(postid)
+    return get_post_by_id(cursor.lastrowid)
 
 
 @app.route("/sign_up", methods=['POST'])
 def signup():
     data = request.get_json()
-    user_id = random.randint(1, 999999)
     salt = bcrypt.gensalt()
     username = data['username']
     raw_password = data['password']
@@ -102,8 +103,8 @@ def signup():
     res = cursor.fetchmany()
     if res:
         abort(401)
-    insert_query = 'insert into users (id, username, password, salt) values (%s, %s, %s, %s)'
-    cursor.execute(insert_query, (user_id, username, hashed_password, salt))
+    insert_query = 'insert into users (username, password, salt) values (%s, %s, %s)'
+    cursor.execute(insert_query, (username, hashed_password, salt))
     db.commit()
     cursor.fetchmany()
     cursor.close()
@@ -139,15 +140,16 @@ def login(username: Optional[str] = None, hashed_password: Optional[bytes] = Non
     cursor.close()
 
     resp = make_response()
-    resp.set_cookie("blog_session_id", new_session_token, path="/", samesite='None', secure=True)
+    resp.set_cookie("blog_session_id", new_session_token, path="/", samesite='none', secure=True)
     return resp
 
 
 @app.route("/logout", methods=['POST'])
 def logout():
-    session_token = request.headers.get('blog_session_id')
+    session_token = request.cookies.get('blog_session_id')
+    print(f'session token: {session_token}')
     cursor = db.cursor()
-    cursor.execute('delete from sessions where session_user = %s', (session_token,))
+    cursor.execute('delete from sessions where session_id = %s', (session_token,))
     db.commit()
     cursor.fetchmany()
     cursor.close()

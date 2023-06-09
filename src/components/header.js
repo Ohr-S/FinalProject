@@ -14,6 +14,7 @@ import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import AdbIcon from '@mui/icons-material/Adb';
 import {useNavigate} from 'react-router-dom';
+import {logout} from "../API_requests/blog_requests";
 
 const pages = ['About Me', 'New Post'];
 const settings = ['Login'];
@@ -182,6 +183,13 @@ function Header() {
                                     nvg("/login")
                                 }}>
                                     <Typography textAlign="center">Login</Typography>
+                                </MenuItem>
+                                <MenuItem key="logout"                                 onClick={() => {
+                                    handleCloseNavMenu();
+                                    const promise = logout();
+                                    promise.then(_ => {}).catch(_ => {})
+                                }}>
+                                    <Typography textAlign="center">Logout</Typography>
                                 </MenuItem>
                             </Menu>
                         </Box>
