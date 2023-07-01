@@ -6,7 +6,7 @@ from typing import Optional
 
 import bcrypt as bcrypt
 from flask import Flask, request, abort, make_response
-from settings import dbpwd
+from hw4.client.blog.src.backend.settings import dbpwd
 import mysql.connector as mysql
 import json
 from datetime import date, datetime
