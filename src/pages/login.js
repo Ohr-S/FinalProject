@@ -48,7 +48,7 @@ const Login = () =>{
                   defaultValue=""/>
                 <Button variant="contained" onClick={_signup}>SignUp</Button>
                 <Button variant="contained" onClick={_login}>Login</Button>
-                <Link to={"/login"}>Forgot Username / Password</Link>
+                <Link to={"/password_recovery"}>Forgot Username / Password</Link>
             </Stack>
       </div>
   );

@@ -8,6 +8,7 @@ const COMMENTS = '/comments'
 const SIGN_UP_URL = '/sign_up'
 const LOGIN_URL = '/login'
 const LOGOUT_URL = '/logout'
+const PASSWORD_RESET_URL = '/password_resets'
 
 export const getPostById = async (id) => {
     const postUrl = `${SINGLE_POST_URL}${id}`
@@ -97,6 +98,20 @@ export const login = async (username, password) => {
 }
 export const logout = async () => {
     await axios.post(LOGOUT_URL, {}, {headers: {
+            'Content-Type': 'application/json'
+        },
+        withCredentials: true})
+}
+
+export const forgot_password = async (username, email) => {
+    await axios.post(PASSWORD_RESET_URL, {username: username, email: email}, {headers: {
+            'Content-Type': 'application/json'
+        },
+        withCredentials: true})
+}
+
+    export const reset_password = async (token, new_password) => {
+    await axios.put(PASSWORD_RESET_URL + '/' + token, {password: new_password}, {headers: {
             'Content-Type': 'application/json'
         },
         withCredentials: true})

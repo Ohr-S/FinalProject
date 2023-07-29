@@ -2,17 +2,21 @@
 import contextlib
 import random
 import string
+import uuid
 from typing import Optional
 
 import bcrypt as bcrypt
 from flask import Flask, request, abort, make_response
-from hw4.client.blog.src.backend.settings import dbpwd
+from hw4.client.blog.src.backend.settings import dbpwd, maintenance_email, maintenance_email_password, \
+    maintenance_email_providor_server, blog_url
 import mysql.connector as mysql
 import json
-from datetime import date, datetime
-import threading
+from datetime import date, datetime, timedelta
 
-lock = threading.Lock()
+import smtplib, ssl
+
+port = 465
+context = ssl.create_default_context()
 
 
 def json_serial(obj):
@@ -36,9 +40,11 @@ pool = mysql.pooling.MySQLConnectionPool(
 def get_cursor():
     db_connection = pool.get_connection()
     cursor = db_connection.cursor()
-    yield cursor, db_connection
-    cursor.close()
-    db_connection.close()
+    try:
+        yield cursor, db_connection
+    finally:
+        cursor.close()
+        db_connection.close()
 
 
 # local
@@ -210,14 +216,14 @@ def signup():
     username = data['username']
     raw_password = data['password']
     hashed_password = bcrypt.hashpw(raw_password.encode('utf-8'), salt=salt)
-    check_query = 'select id from users where username = %s'
+    check_query = 'SELECT id FROM users WHERE username = %s'
     with get_cursor() as (cursor, db_connection):
         cursor.execute(check_query, (username,))
         res = cursor.fetchmany()
         if res:
             abort(401)
 
-        insert_query = 'insert into users (username, password) values (%s, %s)'
+        insert_query = 'INSERT INTO users (username, password) VALUES (%s, %s)'
         cursor.execute(insert_query, (username, hashed_password))
 
         db_connection.commit()
@@ -268,7 +274,103 @@ def logout():
     return resp
 
 
+def send_mail(email, subject, message):
+    with smtplib.SMTP_SSL(maintenance_email_providor_server, port, context=context) as server:
+        server.login(maintenance_email, maintenance_email_password)
+        server.sendmail(maintenance_email, email, f'Subject: {subject}\n\n{message}')
+
+
+def add_password_reset(user_id):
+    expired_date = datetime.now() + timedelta(minutes=15)
+
+    with get_cursor() as (cursor, db_connection):
+        cursor.execute('INSERT INTO password_resets (user_id, token, expire_date) VALUES (%s, UUID(), %s);', (
+                           user_id,
+                           expired_date,
+                       ))
+        cursor.execute('SELECT token from password_resets where id=(SELECT LAST_INSERT_ID());')
+        records = cursor.fetchall()
+        if len(records) != 1:
+            db_connection.rollback()
+            abort(500)
+
+        db_connection.commit()
+    return records[0][0]
+
+
+@app.route('/password_resets', methods=['POST'])
+def create_password_reset():
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+
+    if username is None or email is None:
+        abort(400)
+
+    with get_cursor() as (cursor, _):
+        cursor.execute('SELECT user.id FROM users user WHERE user.username = %s', (username,))
+        records = cursor.fetchall()
+
+    if len(records) != 1:
+        abort(404)
+
+    user_id = records[0][0]
+    token = add_password_reset(user_id)
+    send_mail(email, "Ohr's blog password reset", f"""\
+    To reset the password click the link {blog_url}/password_reset/{token}
+    """)
+    return ""
+
+
+def check_if_password_reset(token):
+    with get_cursor() as (cursor, db_connection):
+        cursor.execute("DELETE FROM password_resets WHERE expire_date < '%s'", (datetime.now(),))
+        db_connection.commit()
+    with get_cursor() as (cursor, _):
+        cursor.execute('SELECT user.username FROM password_resets pr JOIN users user ON user.id = pr.user_id WHERE pr.token = %s', (token,))
+        records = cursor.fetchall()
+    if len(records) != 1:
+        abort(404)
+
+    return {'username': records[0][0]}
+
+
+def reset_password(token):
+    data = request.get_json()
+    raw_password = data.get('password')
+    if raw_password is None:
+        abort(400)
+
+    with get_cursor() as (cursor, db_connection):
+        cursor.execute("DELETE FROM password_resets WHERE expire_date < %s", (datetime.now(),))
+        db_connection.commit()
+
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(raw_password.encode('utf-8'), salt=salt)
+
+    with get_cursor() as (curser, db_connection):
+        curser.execute('SELECT user_id FROM password_resets WHERE token = %s', (token,))
+        records = curser.fetchall()
+        if len(records) != 1:
+            abort(404)
+        user_id = records[0][0]
+        curser.execute('DELETE FROM password_resets WHERE user_id = %s', (user_id,))
+        curser.execute('UPDATE users SET password = %s WHERE id = %s', (hashed_password, user_id))
+        db_connection.commit()
+    return ""
+
+
+@app.route('/password_resets/<token>', methods=['GET', 'PUT'])
+def handle_password_reset(token):
+    if request.method == 'GET':
+        return check_if_password_reset(token)
+    else:
+        return reset_password(token)
+
+
 if __name__ == "__main__":
     app.run(debug=True)
 
+# if __name__ == '__main__':
+#     send_mail('ohrsh59@gmail.com', 'fullstack tests', 'Hi!\nThis is sent using python\n\n')
 print("SERVER RUNNING")

@@ -13,6 +13,8 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { red } from '@mui/material/colors';
 import {Checkbox} from "@mui/material";
 import { getAllPosts } from "../API_requests/blog_requests";
+import ForgotPassword from "./ForgotPassword";
+import PasswordReset from "./PasswordReset";
 
 
 const theme = createTheme({
@@ -71,6 +73,8 @@ function App() {
         <Route path="/new-post" element={<NewPost />} />
         <Route path="/post/:id" element={<Post/>} />
         <Route path="/login" element={<Login/>} />
+        <Route path="/password_recovery" element={<ForgotPassword/>} />
+        <Route path="/password_reset/:token" element={<PasswordReset/>} />
       </Routes>
     </ThemeProvider>
   );
