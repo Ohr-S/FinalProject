@@ -73,17 +73,54 @@ def manage_posts():
 
 
 def get_all_posts():
-    query = "select p.id, p.title, p.body, u.username, p.created_at from posts p join users u on p.user_id = u.id"
+    data = dict(request.args)
+    data['tags'] = tuple(filter(bool, data.get('tags', '').split(',')))
+    content = data.get('content', '')
+    tags = data['tags']
+    where_args = []
     with get_cursor() as (cursor, _):
-        cursor.execute(query)
+        args = []
+        query = """select p.id, p.title, p.body, u.username, p.created_at from posts p
+            join users u on p.user_id = u.id"""
+        if content:
+            args.append(f"%{content}%")
+            where_args.append('p.body like %s')
+        if tags:
+            query += """
+            join post_tags tag_post on tag_post.post_id = p.id
+            join tags tag on tag.id = tag_post.tag_id
+            where WHERE_ARGS
+            group by p.id having count(*) = %s"""
+            args.extend(tags)
+            args.append(len(tags))
+            where_args.append(f'tag.tag in ({", ".join(["%s"] * len(tags))})')
+        else:
+            query += """
+            where WHERE_ARGS"""
+
+        if where_args:
+            query = query.replace('WHERE_ARGS', ' AND '.join(where_args))
+        else:
+            query = query.replace('where WHERE_ARGS', '')
+
+        cursor.execute(query, args)
+
         records = cursor.fetchall()
 
     print(records)
     header = ['id', 'title', 'body', 'username', 'created_at']
-    data = [dict(zip(header, r)) for r in records]
-    for item in data:
+    data = {r[0]: dict(zip(header, r)) for r in records}
+    for item in data.values():
+        item["tags"] = []
         item["created_at"] = item["created_at"].isoformat()
-    return json.dumps(data)
+
+    with get_cursor() as (cursor, _):
+        post_tags = get_posts_tags(cursor, list(data.keys()))
+
+    for post_id, item in data.items():
+        item['tags'] = post_tags.get(post_id, [])
+
+    return json.dumps(list(data.values()))
 
 
 def get_user_id():
@@ -112,13 +149,21 @@ def get_post_by_id(post_id):
     item = dict(zip(header, record))
     item["created_at"] = item["created_at"].isoformat()
     item['is_author'] = record[-1] == user_id
+    with get_cursor() as (cursor, _):
+        tags = get_posts_tags(cursor, [post_id]).get(post_id, [])
+    item['tags'] = tags
     return json.dumps(item)
 
 
-def edit_post(post_id, title, body):
+def edit_post(post_id, title, body, tags):
     with get_cursor() as (cursor, db_connection):
         update_query = 'UPDATE posts SET title = %s, body = %s WHERE id = %s'
         cursor.execute(update_query, (title, body, post_id))
+
+        existing_tag = get_posts_tags(cursor, post_id)
+        remove_tags_to_post(cursor, post_id, [tag for tag in existing_tag if tag not in tags])
+        add_tags_to_post(cursor, post_id, [tag for tag in tags if tag not in existing_tag])
+
         db_connection.commit()
     return ""
 
@@ -128,6 +173,8 @@ def delete_post(post_id):
         delete_query = 'DELETE FROM comments WHERE post_id = %s'
         cursor.execute(delete_query, (post_id,))
         delete_query = 'DELETE FROM posts WHERE id = %s'
+        cursor.execute(delete_query, (post_id,))
+        delete_query = 'DELETE FROM post_tags WHERE post_id = %s'
         cursor.execute(delete_query, (post_id,))
         db_connection.commit()
     return ""
@@ -156,8 +203,8 @@ def manage_single_post(post_id):
 
     if request.method == 'PUT':
         data = request.get_json()
-        title, body = data['title'], data['body']
-        return edit_post(post_id, title, body)
+        title, body, tags = data['title'], data['body'], data['tags']
+        return edit_post(post_id, title, body, tags)
     else:  # DELETE
         return delete_post(post_id)
 
@@ -194,19 +241,79 @@ def manage_comments(post_id):
     return add_comment(post_id, user_id, data['content'])
 
 
+def get_posts_tags(cursor, post_ids):
+    if post_ids:
+        query = f"""SELECT post_tag.post_id, tag.tag FROM tags tag
+        JOIN post_tags post_tag ON post_tag.tag_id = tag.id
+        WHERE post_tag.post_id in ({", ".join(["%s"] * len(post_ids))})"""
+        cursor.execute(query, (*post_ids,))
+        results = cursor.fetchall()
+    else:
+        return []
+
+    post_tags = {}
+    for post_id, tag in results:
+        if post_id not in post_tags:
+            post_tags[post_id] = [tag]
+        else:
+            post_tags[post_id].append(tag)
+
+    return post_tags
+
+
+def add_tags_to_post(cursor, post_id, tags):
+    for tag in tags:
+        insert_query = """INSERT INTO tags (tag)
+            SELECT data.new_tag FROM (SELECT %s  ) AS data(new_tag)
+            LEFT JOIN tags tag ON tag.tag = data.new_tag
+            WHERE tag.id IS NULL;"""
+        cursor.execute(insert_query, (tag,))
+
+    query = f"""
+    INSERT INTO post_tags (post_id, tag_id) 
+    SELECT %s, tag.id FROM tags tag
+    LEFT JOIN post_tags post_tag ON post_tag.post_id = %s AND post_tag.tag_id = tag.id
+    WHERE tag.tag in ({", ".join(["%s"] * len(tags))}) AND post_tag.post_id IS NULL
+    """
+    cursor.execute(query, (post_id, post_id, *tags))
+
+
+def remove_tags_to_post(cursor, post_id, tags):
+    query = f"""DELETE FROM post_tags post_tag
+    JOIN tags tag ON tag.id = post_tag.tag_id 
+    WHERE post_tag.post_id = %s AND tag.tag in ({", ".join(["%s"] * len(tags))})
+    """
+    cursor.execute(query, (post_id, *tags))
+    query = """DELETE FROM tags tag
+    WHERE NOT EXISTS(
+    SELECT 1 FROM post_tags post_tag
+    WHERE post_tag.tag_id = tag.id
+    )
+    """
+    cursor.execute(query)
+
+
 def add_post():
     data = request.get_json()
     user_id = get_user_id()
     if user_id is None:
         abort(401)
 
+    title = data['title']
+    body = data['body']
+    tags = data['tags']
+
     with get_cursor() as (cursor, db_connection):
         query = "insert into posts (title, body, user_id, created_at) values (%s,%s, %s , %s)"
-        values = (data['title'], data['body'], user_id, datetime.now().isoformat())
+        values = (title, body, user_id, datetime.now().isoformat())
         cursor.execute(query, values)
+        post_id = cursor.lastrowid
+
+        add_tags_to_post(cursor, post_id, tags)
+
         db_connection.commit()
 
-    return get_post_by_id(cursor.lastrowid)
+    return get_post_by_id(post_id)
 
 
 @app.route("/sign_up", methods=['POST'])

@@ -35,12 +35,15 @@ function Home(props) {
     const [is_read, set_is_read] = useState(false)
     const [posts, setposts] = useState ([])
     if (!is_read) {
-        const promise = getAllPosts()
+        const promise = getAllPosts([], "")
         console.log(promise)
         promise.then(posts => {
             set_is_read(true)
             console.log(posts)
             setposts(posts)
+        }).catch(error => {
+            alert(error.message)
+            console.log(error)
         })
     }
 
@@ -54,7 +57,8 @@ function Home(props) {
                     <ul>
                         {posts.sort((a, b) => a.created_at> b.created_at? 1 : -1).map((post, ind) => (
                             <li key={post.id}>
-                                <a href={"post/" + (post.id)}>{post.title}</a>
+                                <a key={(post.id) + "_post"} href={"post/" + (post.id)}>{post.title}</a>
+                                {post.tags.map((tag, ind) => (<a key={post.id + "_tag_" + tag} href={"/search?tags=" + tag} style={{"display": "inline"}}>{"#" + tag}</a>))}
                             </li>
                         ))}
                     </ul>

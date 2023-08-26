@@ -19,10 +19,10 @@ export const getPostById = async (id) => {
     return queryResult.data
 }
 
-export const editPostById = async (id, title, body) => {
+export const editPostById = async (id, title, body, tags) => {
     const putUrl = `${SINGLE_POST_URL}${id}`
     console.log("ATTEMPTING TO SEND TO\t", putUrl)
-    const queryResult = await axios.put(putUrl, {title: title, body: body}, {
+    const queryResult = await axios.put(putUrl, {title: title, body: body, tags: tags}, {
         headers: {
             'Content-Type': 'application/json'
         }, withCredentials: true})
@@ -66,21 +66,22 @@ export const deletePostById = async (id) => {
     console.log("REQUEST DATA\t", queryResult.data)
     return queryResult.data
 }
-export const getAllPosts = async () => {
+export const getAllPosts = async (tags, content) => {
     console.log("ATTEMPTING TO SEND TO\t", ALL_POSTS_URL)
-    const queryResult = await axios.get(ALL_POSTS_URL)
-    console.log("REQUEST RESULT\t", queryResult)
-    console.log("REQUEST DATA\t", queryResult.data)
+    console.log("ATTEMPTING TO SEND TO\t", tags)
+    console.log("ATTEMPTING TO SEND TO\t", content)
+    const queryResult = await axios.get(ALL_POSTS_URL + "?content=" + content + '&tags=' + tags.join(','))
     return queryResult.data
 }
-export const createNewPost = async (title, body) => {
+export const createNewPost = async (title, body, tags) => {
     console.log("ATTEMPTING TO SEND TO\t", ALL_POSTS_URL)
-    const queryResult = await axios.post(ALL_POSTS_URL, {title: title, body: body}, {
+    console.log("TITLE\t", title)
+    console.log("BODY\t", body)
+    console.log("TAGS\t", tags)
+    const queryResult = await axios.post(ALL_POSTS_URL, {title: title, body: body, tags: tags}, {
         headers: {
             'Content-Type': 'application/json'
         }, withCredentials: true})
-    console.log("REQUEST RESULT\t", queryResult)
-    console.log("REQUEST DATA\t", queryResult.data)
     return queryResult.data
 }
 export const signup = async (username, password) => {

@@ -4,15 +4,24 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/joy/Stack';
 import {createNewPost} from "../API_requests/blog_requests";
 
+
+const tagRegex = /(^|\s)#(?<tag>\S+)/g;
+
+function get_tags_from_content(content) {
+    return [...content.matchAll(tagRegex)].map((match, _) => {
+        return match.groups.tag
+    })
+}
+
 function create_post() {
     const title = document.getElementById("form_title");
     const content = document.getElementById("form_content");
-    console.log(title);
-    const promise = createNewPost(title.value, content.value)
+    const tags = get_tags_from_content(content.value)
+    const promise = createNewPost(title.value, content.value, tags)
     promise.then(post => {
         document.location = `/post/${post.id}`;
 
-    } ).catch(error => alert(error.message))
+    }).catch(error => alert(error.message))
 
 }
 

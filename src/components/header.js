@@ -154,6 +154,16 @@ function Header() {
                             >
                                 New Post
                             </Button>
+                            <Button
+                                key="Search"
+                                onClick={() => {
+                                    handleCloseNavMenu();
+                                    nvg("/search")
+                                }}
+                                sx={{my: 2, color: 'white', display: 'block'}}
+                            >
+                                Search
+                            </Button>
                         </Box>
 
                         <Box sx={{flexGrow: 0}}>
