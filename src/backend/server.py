@@ -175,9 +175,9 @@ def delete_post(post_id):
     with get_cursor() as (cursor, db_connection):
         delete_query = 'DELETE FROM comments WHERE post_id = %s'
         cursor.execute(delete_query, (post_id,))
-        delete_query = 'DELETE FROM posts WHERE id = %s'
-        cursor.execute(delete_query, (post_id,))
         delete_query = 'DELETE FROM post_tags WHERE post_id = %s'
+        cursor.execute(delete_query, (post_id,))
+        delete_query = 'DELETE FROM posts WHERE id = %s'
         cursor.execute(delete_query, (post_id,))
         db_connection.commit()
     return ""
