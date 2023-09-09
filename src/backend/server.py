@@ -6,11 +6,12 @@ import uuid
 from typing import Optional
 
 import bcrypt as bcrypt
+import requests
 from flask import Flask, request, abort, make_response
 from flask_cors import CORS
 
 from settings import dbpwd, maintenance_email, maintenance_email_password, \
-    maintenance_email_providor_server, blog_url
+    maintenance_email_providor_server
 import mysql.connector as mysql
 import json
 from datetime import date, datetime, timedelta
@@ -50,11 +51,19 @@ def get_cursor():
         db_connection.close()
 
 
+def get_public_ip():
+    resp = requests.get("http://checkip.amazon.com")
+    if resp.status_code != 200:
+        raise ValueError(f"Unable to get public ip status={resp.status_code} text={resp.text}")
+
+    return resp.text.strip()
+
 # local
 app = Flask(__name__)
-
+public_ip = 'localhost'
 
 # remote
+# public_ip = get_public_ip()
 # app = Flask(__name__, static_folder='./build', static_url_path='/')
 #@app.route('/post')
 #@app.route('/new-post')
@@ -62,7 +71,7 @@ app = Flask(__name__)
 #def index():
 #    return app.send_static_file('index.html')
 #CORS(app)
-CORS(app, resources={r"/*": {"origins": "http://3.122.223.138:3306"}})
+CORS(app, resources={r"/*": {"origins": f"https://{public_ip}:5000"}})
 
 # CORS(app,supports_credentials=True,origins=["http://localhost:3000", "http://127.0.0.1:5000"], expose_headers='Set-Cookie')
 
@@ -433,7 +442,7 @@ def create_password_reset():
     user_id = records[0][0]
     token = add_password_reset(user_id)
     send_mail(email, "Ohr's blog password reset", f"""\
-    To reset the password click the link {blog_url}/password_reset/{token}
+    To reset the password click the link https://{get_public_ip()}:5000/password_reset/{token}
     """)
     return ""
 
