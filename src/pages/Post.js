@@ -9,12 +9,21 @@ import Typography from '@mui/material/Typography';
 import {getPostById, deletePostById, editPostById, getComments, addComment} from "../API_requests/blog_requests";
 
 
+
+const tagRegex = /(^|\s)#(?<tag>\S+)/g;
+
+function get_tags_from_content(content) {
+    return [...content.matchAll(tagRegex)].map((match, _) => {
+        return match.groups.tag
+    })
+}
+
 function edit_post() {
     var path = window.location.pathname;
     var post_id = path.split("/").pop();
     const title = document.getElementById("form_title");
     const content = document.getElementById("form_content");
-    editPostById(post_id, title.value, content.value).then(_ => {
+    editPostById(post_id, title.value, content.value, get_tags_from_content(content.value)).then(_ => {
         window.location.reload();
     })
 }

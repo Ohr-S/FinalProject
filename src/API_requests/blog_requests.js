@@ -1,14 +1,15 @@
 import axios from 'axios'
-import {IP, PORT} from './config'
+import {PROTOCOL, IP, PORT} from './config'
 
-// const BASE_URL = `${IP}:${PORT}`
-const ALL_POSTS_URL = '/posts'
-const SINGLE_POST_URL = '/posts/'
-const COMMENTS = '/comments'
-const SIGN_UP_URL = '/sign_up'
-const LOGIN_URL = '/login'
-const LOGOUT_URL = '/logout'
-const PASSWORD_RESET_URL = '/password_resets'
+//const BASE_URL = `${PROTOCOL}://${IP}:${PORT}`
+const BASE_URL = ''
+const ALL_POSTS_URL = `${BASE_URL}/posts`
+const SINGLE_POST_URL = `${BASE_URL}/posts/`
+const COMMENTS = `${BASE_URL}/comments`
+const SIGN_UP_URL = `${BASE_URL}/sign_up`
+const LOGIN_URL = `${BASE_URL}/login`
+const LOGOUT_URL = `${BASE_URL}/logout`
+const PASSWORD_RESET_URL = `${BASE_URL}/password_resets`
 
 export const getPostById = async (id) => {
     const postUrl = `${SINGLE_POST_URL}${id}`
@@ -21,7 +22,8 @@ export const getPostById = async (id) => {
 
 export const editPostById = async (id, title, body, tags) => {
     const putUrl = `${SINGLE_POST_URL}${id}`
-    console.log("ATTEMPTING TO SEND TO\t", putUrl)
+    console.log("ATTEMPTING TO SEND TO\t", putUrl, " with ")
+    console.log(tags)
     const queryResult = await axios.put(putUrl, {title: title, body: body, tags: tags}, {
         headers: {
             'Content-Type': 'application/json'

@@ -7,7 +7,9 @@ from typing import Optional
 
 import bcrypt as bcrypt
 from flask import Flask, request, abort, make_response
-from hw4.client.blog.src.backend.settings import dbpwd, maintenance_email, maintenance_email_password, \
+from flask_cors import CORS
+
+from settings import dbpwd, maintenance_email, maintenance_email_password, \
     maintenance_email_providor_server, blog_url
 import mysql.connector as mysql
 import json
@@ -28,8 +30,9 @@ def json_serial(obj):
 
 
 pool = mysql.pooling.MySQLConnectionPool(
-    host="localhost",
-    user="root",
+    host="test-instance.cbrdyb6rueag.eu-central-1.rds.amazonaws.com",
+    pool_name="database",
+    user="admin",
     passwd=dbpwd,
     database="blog",
     buffered=True,
@@ -53,13 +56,13 @@ app = Flask(__name__)
 
 # remote
 # app = Flask(__name__, static_folder='./build', static_url_path='/')
-
-
-# @app.route('/')
-# def index():
-#     return app.send_static_file('index.html')
-# CORS(app)
-# CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+#@app.route('/post')
+#@app.route('/new-post')
+#@app.route('/')
+#def index():
+#    return app.send_static_file('index.html')
+#CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://3.122.223.138:3306"}})
 
 # CORS(app,supports_credentials=True,origins=["http://localhost:3000", "http://127.0.0.1:5000"], expose_headers='Set-Cookie')
 
@@ -203,7 +206,7 @@ def manage_single_post(post_id):
 
     if request.method == 'PUT':
         data = request.get_json()
-        title, body, tags = data['title'], data['body'], data['tags']
+        title, body, tags = data['title'], data['body'], data.get('tags', [])
         return edit_post(post_id, title, body, tags)
     else:  # DELETE
         return delete_post(post_id)
@@ -262,6 +265,9 @@ def get_posts_tags(cursor, post_ids):
 
 
 def add_tags_to_post(cursor, post_id, tags):
+    if not tags:
+        return
+
     for tag in tags:
         insert_query = """INSERT INTO tags (tag)
             SELECT data.new_tag FROM (SELECT %s  ) AS data(new_tag)
@@ -279,6 +285,9 @@ def add_tags_to_post(cursor, post_id, tags):
 
 
 def remove_tags_to_post(cursor, post_id, tags):
+    if not tags:
+        return
+
     query = f"""DELETE FROM post_tags post_tag
     JOIN tags tag ON tag.id = post_tag.tag_id 
     WHERE post_tag.post_id = %s AND tag.tag in ({", ".join(["%s"] * len(tags))})
@@ -301,7 +310,7 @@ def add_post():
 
     title = data['title']
     body = data['body']
-    tags = data['tags']
+    tags = data.get('tags', [])
 
     with get_cursor() as (cursor, db_connection):
         query = "insert into posts (title, body, user_id, created_at) values (%s,%s, %s , %s)"
